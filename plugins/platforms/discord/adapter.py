@@ -5301,16 +5301,13 @@ class DiscordAdapter(DiscordMediaMixin, BasePlatformAdapter):
             return str(c).strip()
 
         def _build(_channel):
-            embed = discord.Embed(
-                title="❓ Hermes needs your input",
-                description=self._embed_body(str(question or "").strip()),
-                color=discord.Color.orange(),
-            )
+            # The question and hint live in content only. Repeating them in the embed makes
+            # Discord clients render one clarification prompt twice.
+            embed = discord.Embed(title="❓ Hermes needs your input", color=discord.Color.orange())
             # 5 buttons × 5 rows = 25; one slot is reserved for "Other".
             clean_choices = [s for s in (_flatten_choice(c) for c in (choices or [])) if s][:24]
             if clean_choices:
                 hint = "Pick one below, or click ✏️ Other to type a custom answer."
-                embed.add_field(name="Choices", value=hint, inline=False)
                 view = ClarifyChoiceView(
                     choices=clean_choices, clarify_id=clarify_id,
                     allowed_user_ids=self._allowed_user_ids,
@@ -5318,7 +5315,6 @@ class DiscordAdapter(DiscordMediaMixin, BasePlatformAdapter):
                 )
             else:
                 hint = "Reply in this channel with your answer."
-                embed.add_field(name="Reply", value=hint, inline=False)
                 view = None
             content = self._self_contained_prompt_content(
                 "❓ **Hermes needs your input**", str(question or "").strip(), tail=f"\n\n{hint}",

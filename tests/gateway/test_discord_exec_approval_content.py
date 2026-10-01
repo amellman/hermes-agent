@@ -48,3 +48,24 @@ async def test_exec_approval_prompt_uses_visible_content_with_command_and_reason
     assert "script execution via -c flag" in prompt_text
 
 
+def _embed_text(embed):
+    return (embed.description or "") + "".join(
+        str(getattr(field, "value", None) or (field.get("value") if isinstance(field, dict) else "") or "")
+        for field in embed.fields
+    )
+
+
+@pytest.mark.asyncio
+async def test_clarify_embed_does_not_repeat_visible_content():
+    adapter = DiscordAdapter(PlatformConfig(enabled=True, token="***"))
+    sent = _capture_channel(adapter)
+
+    await adapter.send_clarify(
+        chat_id="555", question="Which agent should run this?", choices=["Codex", "Claude Sonnet"],
+        clarify_id="cl1", session_key="discord:555")
+
+    assert "Which agent should run this?" in sent["content"]
+    assert "Pick one below" in sent["content"]
+    assert "Which agent should run this?" not in _embed_text(sent["embed"])
+    assert "Pick one below" not in _embed_text(sent["embed"])
+
